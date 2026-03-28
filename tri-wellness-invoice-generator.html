@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tri-Wellness Invoice Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f4f1ec;
+    min-height: 100vh;
+    color: #1a1a1a;
+  }
+
+  .header {
+    background: #1d4d6e;
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+  }
+
+  .header p {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  .logo-circle {
+    width: 44px;
+    height: 44px;
+    background: #f4a228;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: #1d4d6e;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #666;
+  }
+
+  .form-group input, .form-group select {
+    border: 1.5px solid #e8e4de;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: #1a1a1a;
+    background: #faf9f7;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .form-group input:focus, .form-group select:focus {
+    border-color: #1d4d6e;
+    background: white;
+  }
+
+  .btn {
+    background: #1d4d6e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn:hover { background: #163d57; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: #f4a228;
+  }
+  .btn-secondary:hover { background: #e09020; }
+
+  .status {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 16px;
+  }
+
+  .status.loading { background: #e8f0f7; color: #1d4d6e; }
+  .status.error { background: #fdecea; color: #c0392b; }
+  .status.success { background: #eaf5ec; color: #27662f; }
+
+  .invoice-preview { display: none; }
+  .invoice-preview.visible { display: block; }
+
+  .invoice-box {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+
+  .inv-header {
+    background: linear-gradient(135deg, #1d4d6e 0%, #2a6a96 100%);
+    color: white;
+    padding: 28px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .inv-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+  }
+
+  .inv-logo span { color: #f4a228; }
+
+  .inv-logo-sub {
+    font-size: 10px;
+    opacity: 0.7;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .inv-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    opacity: 0.9;
+    letter-spacing: 2px;
+  }
+
+  .inv-meta {
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    border-bottom: 1px solid #f0ede8;
+  }
+
+  .inv-meta-block h4 {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #999;
+    margin-bottom: 6px;
+  }
+
+  .inv-meta-block p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #333;
+  }
+
+  .inv-meta-block .highlight {
+    font-weight: 600;
+    color: #1d4d6e;
+  }
+
+  .cpt-info {
+    padding: 16px 32px;
+    background: #f4f1ec;
+    display: flex;
+    gap: 32px;
+    font-size: 12px;
+    border-bottom: 1px solid #e8e4de;
+  }
+
+  .cpt-block { display: flex; flex-direction: column; gap: 2px; }
+  .cpt-block span:first-child { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #999; font-weight: 600; }
+  .cpt-block span:last-child { color: #333; font-weight: 500; }
+
+  .inv-table-wrap { padding: 0 32px 24px; }
+
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 13px;
+  }
+
+  .inv-table thead th {
+    background: #1d4d6e;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .inv-table thead th:last-child { text-align: right; }
+  .inv-table tbody tr:nth-child(even) { background: #faf9f7; }
+
+  .inv-table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0ede8;
+    color: #333;
+  }
+
+  .inv-table tbody td:last-child {
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .inv-totals {
+    padding: 0 32px 32px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .inv-totals-box { min-width: 260px; }
+
+  .inv-totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #f0ede8;
+    color: #555;
+  }
+
+  .inv-totals-row.total {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d4d6e;
+    border-bottom: 2px solid #1d4d6e;
+    border-top: 2px solid #1d4d6e;
+    padding: 12px 0;
+  }
+
+  .inv-footer {
+    background: #f4f1ec;
+    padding: 16px 32px;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    letter-spacing: 0.5px;
+  }
+
+  .actions { margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media print {
+    .header, .card, .actions { display: none !important; }
+    .invoice-preview { display: block !important; }
+    body { background: white; }
+    .invoice-box { box-shadow: none; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-circle">TW</div>
+  <div>
+    <h1>Tri-Wellness Invoice Generator</h1>
+    <p>Pull client session data and generate invoices instantly</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Generate Invoice</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Client Name (must match sheet tab exactly)</label>
+        <input type="text" id="clientName" placeholder="e.g. Cannon, Jack" />
+      </div>
+      <div class="form-group">
+        <label>Invoice Number</label>
+        <input type="text" id="invoiceNum" placeholder="e.g. 4302" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Invoice Date</label>
+        <input type="text" id="invoiceDate" placeholder="e.g. Mar 30, 2026" />
+      </div>
+      <div class="form-group">
+        <label>Due Date (optional)</label>
+        <input type="text" id="dueDate" placeholder="e.g. Apr 15, 2026" />
+      </div>
+    </div>
+    <button class="btn" id="generateBtn" onclick="generateInvoice()">Generate Invoice</button>
+    <div id="status" style="display:none"></div>
+  </div>
+
+  <div class="invoice-preview" id="invoicePreview">
+    <div class="invoice-box" id="invoiceBox"></div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+      <button class="btn btn-secondary" onclick="resetForm()">← Generate Another</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = '1IOiAkWucAQK4WiztRU6GjNJ4RqQLvh5c7jy28QJESfo';
+const API_KEY = 'AIzaSyBBNhjK95Ts0CbQ5VjdEoPhV5V-H6lfw0M';
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.style.display = 'block';
+  el.className = 'status ' + type;
+  el.innerHTML = msg;
+}
+
+function resetForm() {
+  document.getElementById('invoicePreview').classList.remove('visible');
+  document.getElementById('status').style.display = 'none';
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = false;
+  btn.innerHTML = 'Generate Invoice';
+}
+
+async function generateInvoice() {
+  const clientName = document.getElementById('clientName').value.trim();
+  const invoiceNum = document.getElementById('invoiceNum').value.trim();
+  const invoiceDate = document.getElementById('invoiceDate').value.trim();
+  const dueDate = document.getElementById('dueDate').value.trim();
+
+  if (!clientName) { showStatus('Please enter a client name.', 'error'); return; }
+  if (!invoiceNum) { showStatus('Please enter an invoice number.', 'error'); return; }
+  if (!invoiceDate) { showStatus('Please enter an invoice date.', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Fetching data...';
+  showStatus('<span class="spinner" style="border-color:rgba(29,77,110,0.3);border-top-color:#1d4d6e;"></span> Connecting to Google Sheets...', 'loading');
+
+  try {
+    const encodedTab = encodeURIComponent(clientName);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodedTab}!A:D?key=${API_KEY}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      showStatus('❌ Error: ' + data.error.message + '<br><small>Make sure the tab name matches exactly.</small>', 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Generate Invoice';
+      return;
+    }
+
+    const rows = data.values || [];
+    if (rows.length === 0) {
+      showStatus('❌ No data found for tab: ' + clientName, 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Generate Invoice';
+      return;
+    }
+
+    const sessionRows = [];
+    let subtotal = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const col0 = (row[0] || '').toString().trim();
+      const col1 = (row[1] || '').toString().trim();
+      const col2 = (row[2] || '').toString().trim();
+      const col3 = (row[3] || '').toString().trim();
+
+      if (!col0 || col0.toLowerCase().includes('date') || col0.toLowerCase().includes('month')) continue;
+      const looksLikeDate = /\d/.test(col0);
+      if (!looksLikeDate) continue;
+
+      let amount = col3 || col2 || col1 || '';
+      let sessions = col1 || '';
+      let description = col2 || 'Executive Functioning Coaching';
+
+      if (!col2 && !col3 && col1) {
+        amount = col1;
+        sessions = '';
+        description = 'Executive Functioning Coaching';
+      }
+
+      const amountNum = parseFloat(String(amount).replace(/[$,]/g, ''));
+      if (isNaN(amountNum) || amountNum === 0) continue;
+
+      subtotal += amountNum;
+      sessionRows.push({ date: col0, sessions, description, amount: amountNum });
+    }
+
+    if (sessionRows.length === 0) {
+      showStatus('❌ Could not parse session rows. Please check the tab name and data format.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Generate Invoice';
+      return;
+    }
+
+    showStatus('✅ Data loaded! ' + sessionRows.length + ' session entries found.', 'success');
+    renderInvoice(clientName, invoiceNum, invoiceDate, dueDate, sessionRows, subtotal);
+
+  } catch (err) {
+    showStatus('❌ Network error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Generate Invoice';
+  }
+}
+
+function renderInvoice(clientName, invoiceNum, invoiceDate, dueDate, rows, subtotal) {
+  const tableRows = rows.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.sessions}</td>
+      <td>${r.description || 'Executive Functioning Coaching'}</td>
+      <td>$${r.amount.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <div class="inv-header">
+      <div>
+        <div class="inv-logo">Tri-<span>Wellness</span></div>
+        <div class="inv-logo-sub">Realistic Approach · Lifelong Results</div>
+        <div style="font-size:11px;opacity:0.6;margin-top:10px;line-height:1.8;">
+          Lisa Shanken<br>
+          2299 Pearl St, Suite 103, Boulder, CO 80302<br>
+          917-453-3202 · lisa@lisashanken.com<br>
+          Tax ID: 47-1261468
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="inv-title">INVOICE</div>
+        <div style="font-size:13px;opacity:0.8;margin-top:8px;">
+          <div># ${invoiceNum}</div>
+          <div>Date: ${invoiceDate}</div>
+          ${dueDate ? '<div>Due: ' + dueDate + '</div>' : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-meta">
+      <div class="inv-meta-block">
+        <h4>Billed To</h4>
+        <p class="highlight">${clientName}</p>
+      </div>
+      <div class="inv-meta-block">
+        <h4>Payment Terms</h4>
+        <p>Due Upon Receipt</p>
+      </div>
+    </div>
+
+    <div class="cpt-info">
+      <div class="cpt-block">
+        <span>Diagnostic Code</span>
+        <span>—</span>
+      </div>
+      <div class="cpt-block">
+        <span>CPT Code</span>
+        <span>0593T</span>
+      </div>
+      <div class="cpt-block">
+        <span>Payment Terms</span>
+        <span>Due Upon Receipt</span>
+      </div>
+      <div class="cpt-block">
+        <span>Due Date</span>
+        <span>${dueDate || '—'}</span>
+      </div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Sessions</th>
+            <th>Description</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="inv-totals">
+      <div class="inv-totals-box">
+        <div class="inv-totals-row">
+          <span>Subtotal</span>
+          <span>$${subtotal.toFixed(2)}</span>
+        </div>
+        <div class="inv-totals-row">
+          <span>Sales Tax</span>
+          <span>—</span>
+        </div>
+        <div class="inv-totals-row total">
+          <span>TOTAL DUE</span>
+          <span>$${subtotal.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-footer">Thank you for your business · www.LisaShanken.com</div>
+  `;
+
+  document.getElementById('invoiceBox').innerHTML = html;
+  document.getElementById('invoicePreview').classList.add('visible');
+  document.getElementById('invoicePreview').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
