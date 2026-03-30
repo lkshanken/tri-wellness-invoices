@@ -285,6 +285,18 @@ function parseSheetDate(val) {
   return null;
 }
 
+function formatSessions(val) {
+  if (!val) return '';
+  const num = parseFloat(val);
+  if (isNaN(num)) return val;
+  // Show 1 as "1", 0.5 as "½", 1.5 as "1½", etc.
+  const whole = Math.floor(num);
+  const half = (num % 1) === 0.5;
+  if (whole === 0 && half) return '½';
+  if (half) return whole + '½';
+  return String(whole);
+}
+
 async function generateInvoice() {
   const clientName = document.getElementById('clientName').value.trim();
   const invoiceNum = document.getElementById('invoiceNum').value.trim();
@@ -333,33 +345,35 @@ async function generateInvoice() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const col0 = (row[0] || '').toString().trim();
-      const col1 = (row[1] || '').toString().trim();
-      const col2 = (row[2] || '').toString().trim();
-      const col3 = (row[3] || '').toString().trim();
 
-      if (!col0 || col0.toLowerCase().includes('date') || col0.toLowerCase().includes('month')) continue;
-      if (!/\d/.test(col0)) continue;
+      // Always read columns in fixed positions:
+      // Col A (0) = Date, Col B (1) = Sessions, Col C (2) = Cost, Col D (3) = Notes (ignored)
+      const dateVal  = (row[0] || '').toString().trim();
+      const sessVal  = (row[1] || '').toString().trim();
+      const costVal  = (row[2] || '').toString().trim();
 
-      const rowDate = parseSheetDate(col0);
+      // Skip header row and empty rows
+      if (!dateVal || dateVal.toLowerCase() === 'date') continue;
+
+      // Must look like a date
+      if (!/\d/.test(dateVal)) continue;
+
+      // Parse date and filter by billing period
+      const rowDate = parseSheetDate(dateVal);
       if (!rowDate) continue;
       if (rowDate < startDate || rowDate > endDate) continue;
 
-      let amount = col3 || col2 || col1 || '';
-      let sessions = col1 || '';
-      let description = col2 || 'Executive Functioning Coaching';
-
-      if (!col2 && !col3 && col1) {
-        amount = col1;
-        sessions = '';
-        description = 'Executive Functioning Coaching';
-      }
-
-      const amountNum = parseFloat(String(amount).replace(/[$,]/g, ''));
+      // Cost must be a valid number in column C
+      const amountNum = parseFloat(costVal.replace(/[$,]/g, ''));
       if (isNaN(amountNum) || amountNum === 0) continue;
 
       subtotal += amountNum;
-      sessionRows.push({ date: col0, sessions, description, amount: amountNum });
+      sessionRows.push({
+        date: dateVal,
+        sessions: formatSessions(sessVal),
+        description: 'Executive Functioning Coaching',
+        amount: amountNum
+      });
     }
 
     if (sessionRows.length === 0) {
@@ -384,7 +398,7 @@ function renderInvoice(clientName, invoiceNum, invoiceDate, dueDate, rows, subto
     <tr>
       <td>${r.date}</td>
       <td>${r.sessions}</td>
-      <td>${r.description || 'Executive Functioning Coaching'}</td>
+      <td>${r.description}</td>
       <td>$${r.amount.toFixed(2)}</td>
     </tr>
   `).join('');
